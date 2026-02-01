@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>📍 Просмотр местоположения</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        body, html { margin: 0; height: 100%; }
+        #map { height: 100vh; }
+        .info {
+            position: fixed; top: 10px; left: 10px;
+            background: white; padding: 10px; border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2); z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h3>📍 Просмотр местоположения</h3>
+        <p id="status">Загрузка...</p>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // ⚠️ ТЕ ЖЕ КЛЮЧИ, ЧТО И В index.html
+        const supabase = window.supabase.createClient(
+            'https://ВАШ-ID.supabase.co',
+            'ВАШ-ANON-KEY'
+        );
+        
+        let map = L.map('map').setView([55.75, 37.61], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        async function loadLocation() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('id') || urlParams.get('view');
+            
+            if (!shareId) {
+                document.getElementById('status').textContent = '❌ Нет ID для просмотра';
+                return;
+            }
+            
+            const { data } = await supabase
+                .from('locations')
+                .select('*')
+                .eq('share_id', shareId)
+                .order('updated_at', { ascending: false })
+                .limit(1);
+            
+            if (data && data[0]) {
+                const loc = data[0];
+                L.marker([loc.latitude, loc.longitude])
+                    .addTo(map)
+                    .bindPopup(`
+                        <b>📍 Местоположение</b><br>
+                        Время: ${new Date(loc.updated_at).toLocaleString()}<br>
+                        <small>Обновляется каждые 5 сек</small>
+                    `)
+                    .openPopup();
+                
+                map.setView([loc.latitude, loc.longitude], 15);
+                document.getElementById('status').innerHTML = 
+                    ✅ Активно • Обновлено: ${new Date(loc.updated_at).toLocaleTimeString()};
+                
+                // Автообновление
+                setInterval(loadLocation, 5000);
+            } else {
+                document.getElementById('status').textContent = '❌ Местоположение не найдено';
+            }
+        }
+        
+        loadLocation();
+    </script>
+</body>
+</html>
