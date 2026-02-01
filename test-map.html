@@ -14,28 +14,289 @@
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Простейшая карта
-        console.log('Начинаем загрузку карты...');
-        
-        try {
-            var map = L.map('map').setView([55.75, 37.61], 13);
-            console.log('Карта создана');
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
-            console.log('Слой карты добавлен');
-            
-            L.marker([55.75, 37.61]).addTo(map)
-                .bindPopup('Тестовая точка')
-                .openPopup();
-            console.log('Маркер добавлен');
-            
-            alert('✅ Карта работает!');
-        } catch (error) {
-            console.error('Ошибка:', error);
-            alert('❌ Ошибка: ' + error.message);
+     Golante, [01.02.2026 18:42]
+// ============================================
+// ⚠️ ВАШИ КЛЮЧИ SUPABASE:
+// ============================================
+const SUPABASE_URL = 'https://ВАШ-ID.supabase.co';
+const SUPABASE_KEY = 'ВАШ-ANON-KEY';
+// ============================================
+
+// Инициализация Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Переменные
+let map = null;
+let marker = null;
+let watchId = null;
+let myShareId = null;
+let isTracking = false;
+
+// 1. ИНИЦИАЛИЗАЦИЯ КАРТЫ ПРИ ЗАГРУЗКЕ
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('Загружаем карту...');
+    initMap();
+    
+    // Проверяем, если это режим просмотра
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewId = urlParams.get('view');
+    if (viewId) {
+        // Режим для друга
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'none';
+        document.querySelector('h1').textContent = '📍 Просмотр местоположения';
+        loadFriendLocation(viewId);
+    }
+});
+
+// 2. СОЗДАЕМ КАРТУ
+function initMap() {
+    try {
+        // Проверяем, есть ли контейнер для карты
+        const mapContainer = document.getElementById('map');
+        if (!mapContainer) {
+            console.error('Ошибка: контейнер #map не найден!');
+            return;
         }
+        
+        // Создаем карту
+        map = L.map('map').setView([55.75, 37.61], 13);
+        console.log('Карта создана');
+        
+        // Добавляем слой с картой
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+        
+        console.log('Карта загружена успешно');
+        updateStatus('✅ Карта готова', 'success');
+        
+    } catch (error) {
+        console.error('Ошибка создания карты:', error);
+        updateStatus('❌ Ошибка загрузки карты', 'error');
+    }
+}
+
+// 3. ОБНОВЛЕНИЕ СТАТУСА
+function updateStatus(message, type = 'info') {
+    const statusEl = document.getElementById('status');
+    if (!statusEl) {
+        console.log('Статус:', message);
+        return;
+    }
+    
+    statusEl.textContent = message;
+    statusEl.className = 'status';
+    
+    if (type === 'success') {
+        statusEl.classList.add('status-success');
+    } else if (type === 'error') {
+        statusEl.classList.add('status-error');
+    } else {
+        statusEl.classList.add('status-info');
+    }
+    
+    statusEl.style.display = 'block';
+}
+
+// 4. НАЧАТЬ ОТСЛЕЖИВАНИЕ
+async function startTracking() {
+    if (isTracking) return;
+    
+    // Проверяем карту
+    if (!map) {
+        updateStatus('❌ Карта не загрузилась', 'error');
+        return;
+    }
+    
+    // Проверяем геолокацию
+    if (!navigator.geolocation) {
+        updateStatus('❌ Браузер не поддерживает геолокацию', 'error');
+        return;
+    }
+    
+    // Меняем кнопки
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+    isTracking = true;
+    
+    // Создаем ID
+    myShareId = 'user_' + Date.now();
+    
+    updateStatus('📍 Определяем местоположение...', 'info');
+    
+    // Запускаем геолокацию
+    watchId = navigator.geolocation.watchPosition(
+        // Успех
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            // Показываем на карте
+            updateMapPosition(lat, lng);
+            
+            // Сохраняем в базу
+            await saveLocation(lat, lng);
+            
+            // Показываем ссылку
+            showShareLink();
+        },
+        
+        // Ошибка
+        (error) => {
+            let msg = 'Ошибка геолокации';
+            if (error.code === 1) msg = 'Разрешите доступ к геолокации';
+            if (error.code === 2) msg = 'Не удалось определить местоположение';
+            if (error.code === 3) msg = 'Таймаут';
+            
+            updateStatus('❌ ' + msg, 'error');
+            stopTracking();
+        },
+
+Golante, [01.02.2026 18:42]
+// Настройки
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+// 5. ОБНОВИТЬ ПОЗИЦИЮ НА КАРТЕ
+function updateMapPosition(lat, lng) {
+    if (!map) return;
+    
+    if (!marker) {
+        // Создаем маркер
+        marker = L.marker([lat, lng]).addTo(map);
+        map.setView([lat, lng], 16);
+        marker.bindPopup('Вы здесь').openPopup();
+    } else {
+        // Обновляем маркер
+        marker.setLatLng([lat, lng]);
+    }
+}
+
+// 6. СОХРАНИТЬ В БАЗУ
+async function saveLocation(lat, lng) {
+    try {
+        const { error } = await supabase
+            .from('locations')
+            .upsert({
+                share_id: myShareId,
+                latitude: lat,
+                longitude: lng,
+                updated_at: new Date().toISOString()
+            });
+        
+        if (error) {
+            console.error('Ошибка Supabase:', error);
+            updateStatus('❌ Ошибка сохранения', 'error');
+            return false;
+        }
+        
+        const time = new Date().toLocaleTimeString();
+        updateStatus(`✅ Сохранено: ${time}`, 'success');
+        return true;
+        
+    } catch (error) {
+        console.error('Ошибка:', error);
+        return false;
+    }
+}
+
+// 7. ПОКАЗАТЬ ССЫЛКУ
+function showShareLink() {
+    const shareSection = document.getElementById('shareSection');
+    if (!shareSection) return;
+    
+    if (shareSection.style.display !== 'block') {
+        shareSection.style.display = 'block';
+        
+        // Создаем ссылку
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareUrl = baseUrl + '?view=' + myShareId;
+        
+        document.getElementById('share-link').value = shareUrl;
+        updateStatus('✅ Ссылка готова! Отправьте другу.', 'success');
+    }
+}
+
+// 8. ОСТАНОВИТЬ ОТСЛЕЖИВАНИЕ
+function stopTracking() {
+    if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+    
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    isTracking = false;
+    
+    updateStatus('⏹️ Отслеживание остановлено', 'error');
+}
+
+// 9. КОПИРОВАТЬ ССЫЛКУ
+function copyShareLink() {
+    const linkInput = document.getElementById('share-link');
+    if (!linkInput || !linkInput.value) return;
+    
+    linkInput.select();
+    navigator.clipboard.writeText(linkInput.value)
+        .then(() => updateStatus('✅ Ссылка скопирована!', 'success'))
+        .catch(() => updateStatus('❌ Не удалось скопировать', 'error'));
+}
+
+// 10. ПОДЕЛИТЬСЯ В WHATSAPP
+function shareWhatsApp() {
+    const link = document.getElementById('share-link').value;
+    const text = 📍 Мое местоположение:\n${link};
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// 11. ПОДЕЛИТЬСЯ В TELEGRAM
+function shareTelegram() {
+    const link = document.getElementById('share-link').value;
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=📍 Мое местоположение`, '_blank');
+}
+
+// 12. ЗАГРУЗИТЬ МЕСТОПОЛОЖЕНИЕ ДРУГА
+async function loadFriendLocation(shareId) {
+    updateStatus('🔄 Загружаем местоположение...', 'info');
+    
+    try {
+        const { data } = await supabase
+            .from('locations')
+            .select('*')
+            .eq('share_id', shareId)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+        
+        if (data && data[0]) {
+            const loc = data[0];
+            
+            // Показываем на карте
+            L.marker([loc.latitude, loc.longitude])
+                .addTo(map)
+                .bindPopup(`Друг<br>Обновлено: ${new Date(loc.updated_at).toLocaleTimeString()}`)
+                .openPopup();
+            
+            map.setView([loc.latitude, loc.longitude], 15);
+            updateStatus('✅ Местоположение загружено', 'success');
+            
+            // Автообновление
+            setInterval(() => loadFriendLocation(shareId), 5000);
+        } else {
+
+Golante, [01.02.2026 18:42]
+updateStatus('❌ Местоположение не найдено', 'error');
+        }
+    } catch (error) {
+        updateStatus('❌ Ошибка загрузки', 'error');
+    }
+}
     </script>
 </body>
 </html>
