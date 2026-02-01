@@ -354,8 +354,8 @@ Golante, [01.02.2026 15:16]
         // ============================================
         // ⚠️ ВАШИ КЛЮЧИ SUPABASE:
         // ============================================
-        const SUPABASE_URL = 'https://ВАШ-ID.supabase.co';
-        const SUPABASE_KEY = 'ВАШ-ANON-KEY';
+        const SUPABASE_URL = 'https://ВАШ-ID.mykbslwnmmdkcsyfconhco';
+        const SUPABASE_KEY = sb_publishable_OJGkhLr8_qmBfn-tqbraQQ_42frnsgH
         // ============================================
         
         // Инициализация
@@ -607,6 +607,14 @@ updateStatus('⏹️ Отслеживание остановлено', 'error');
             } catch (error) {
                 updateStatus('❌ Ошибка загрузки', 'error');
             }
+
+        / Принудительная инициализация через 3 секунды
+setTimeout(function() {
+    if (!window.mapInitialized && document.getElementById('map')) {
+        console.log('Принудительно инициализируем карту...');
+        initMap();
+    }
+}, 3000);
         }
     </script>
 </body>
