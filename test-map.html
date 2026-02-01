@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест карты</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 20px; }
+        #map { height: 500px; border: 3px solid blue; }
+    </style>
+</head>
+<body>
+    <h1>Тестируем карту Leaflet</h1>
+    <div id="map"></div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Простейшая карта
+        console.log('Начинаем загрузку карты...');
+        
+        try {
+            var map = L.map('map').setView([55.75, 37.61], 13);
+            console.log('Карта создана');
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+            console.log('Слой карты добавлен');
+            
+            L.marker([55.75, 37.61]).addTo(map)
+                .bindPopup('Тестовая точка')
+                .openPopup();
+            console.log('Маркер добавлен');
+            
+            alert('✅ Карта работает!');
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('❌ Ошибка: ' + error.message);
+        }
+    </script>
+</body>
+</html>
