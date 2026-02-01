@@ -1,79 +1,563 @@
+Golante, [01.02.2026 15:09]
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
+    <title>📍 Мой Трекер Местоположения</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1000px;
+        }
+        
+        .header {
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+        
+        #map {
+            height: 500px;
+            width: 100%;
+            border-bottom: 3px solid #f0f0f0;
+        }
+        
+        .controls {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 18px 36px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 176, 155, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(to right, #ff7e5f, #feb47b);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 126, 95, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(to right, #2193b0, #6dd5ed);
+            color: white;
+        }
+        
+        #share-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .link-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        #share-link {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+        }
+        
+        .btn-copy {
+            background: #6c5ce7;
+            color: white;
+            padding: 15px 25px;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .
 
-<title>Tracker</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-
-<style>
-html,body{
-margin:0;
-height:100%;
-}
-
-#map{
-height:100vh;
-width:100%;
-}
-
-#panel{
-position:fixed;
-bottom:15px;
-left:50%;
-transform:translateX(-50%);
-background:white;
-padding:10px;
-border-radius:8px;
-z-index:1000;
-}
-</style>
-
+Golante, [01.02.2026 15:09]
+status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #1565c0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            #map {
+                height: 400px;
+            }
+            
+            .btn {
+                padding: 15px 25px;
+                font-size: 1rem;
+                width: 100%;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
-
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>📍 Трекер Местоположения</h1>
+            <p>Определяйте своё местоположение и делитесь им с друзьями в реальном времени</p>
+        </div>
+        
+        <div class="content">
+            <div id="map"></div>
+            
+            <div class="controls">
+                <div class="buttons">
+                    <button id="startBtn" class="btn btn-primary" onclick="startTracking()">
+                        <span>▶</span> Начать отслеживание
+                    </button>
+                    <button id="stopBtn" class="btn btn-secondary" onclick="stopTracking()" disabled>
+                        <span>⏹</span> Остановить
+                    </button>
+                </div>
+                
+                <div id="share-section">
+                    <h3 style="margin-bottom: 15px; color: #333;">🔗 Поделиться местоположением</h3>
+                    <p style="margin-bottom: 15px; color: #666;">Отправьте эту ссылку другу, чтобы он видел ваше местоположение в реальном времени:</p>
+                    
+                    <div class="link-container">
+                        <input type="text" id="share-link" readonly placeholder="Ссылка появится здесь...">
+                        <button class="btn btn-copy" onclick="copyShareLink()">
+                            <span>📋</span> Копировать
+                        </button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                        <button class="btn" onclick="shareWhatsApp()" style="background: #25D366; color: white; flex: 1; min-width: 150px;">
+                            WhatsApp
+                        </button>
+                        <button class="btn" onclick="shareTelegram()" style="background: #0088cc; color: white; flex: 1; min-width: 150px;">
+                            Telegram
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="status"></div>
+                
+                <div class="info-box">
+                    <strong>ℹ️ Как это работает:</strong>
+                    <ol style="margin-top: 10px; padding-left: 20px;">
+                        <li>Нажмите "Начать отслеживание"</li>
+                        <li>Разрешите доступ к геолокации</li>
+                        <li>Ваше местоположение сохраняется в базу данных</li>
+                        <li>Появится ссылка — отправьте её другу</li>
+                        <li>Друг откроет ссылку и увидит вас на карте</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div id="map"></div>
+    <!-- Подключаем библиотеки -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<div id="panel">
-<button onclick="start()">Начать</button>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+Golante, [01.02.2026 15:09]
 <script>
+        // ============================================
+        // ⚠️ ВСТАВЬТЕ СВОИ ДАННЫЕ С SUPABASE:
+        // ============================================
+        const SUPABASE_URL = 'https://ВАШ-ID.supabase.co';  // Ваш Project URL
+        const SUPABASE_KEY = 'ВАШ-ANON-KEY';               // Ваш anon public ключ
+        // ============================================
+        
+        // Инициализация Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // Инициализация карты
+        let map = L.map('map').setView([55.75, 37.61], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Переменные
+        let marker = null;
+        let watchId = null;
+        let myShareId = null;
+        let isTracking = false;
+        
+        // Обновление статуса
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = message;
+            statusEl.className = 'status';
+            
+            if (type === 'success') {
+                statusEl.classList.add('status-success');
+            } else if (type === 'error') {
+                statusEl.classList.add('status-error');
+            }
+            
+            statusEl.style.display = 'block';
+        }
+        
+        // Начать отслеживание
+        async function startTracking() {
+            if (isTracking) return;
+            
+            // Проверяем поддержку геолокации
+            if (!navigator.geolocation) {
+                updateStatus('❌ Ваш браузер не поддерживает геолокацию', 'error');
+                return;
+            }
+            
+            // Меняем состояние кнопок
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            isTracking = true;
+            
+            // Генерируем уникальный ID
+            myShareId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+            
+            updateStatus('🔄 Определяем ваше местоположение...', 'info');
+            
+            // Запускаем отслеживание геолокации
+            watchId = navigator.geolocation.watchPosition(
+                // Успешное получение координат
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    
+                    // Обновляем карту
+                    updateMap(lat, lng);
+                    
+                    // Сохраняем в Supabase
+                    const success = await saveToDatabase(lat, lng, accuracy);
+                    
+                    if (success) {
+                        // Показываем секцию分享 после первого успешного сохранения
+                        if (document.getElementById('share-section').style.display === 'none') {
+                            showShareSection();
+                        }
+                    }
+                },
+                
+                // Ошибка геолокации
+                (error) => {
+                    let errorMessage = 'Ошибка геолокации: ';
+                    switch(error.code) {
+                        case 1:
+                            errorMessage = '📍 Разрешите доступ к геолокации в настройках браузера';
+                            break;
+                        case 2:
+                            errorMessage = '⚠️ Не удалось определить местоположение';
+                            break;
+                        case 3:
+                            errorMessage = '⏱️ Таймаут запроса геолокации';
+                            break;
+                    }
+                    updateStatus(errorMessage, 'error');
+                    stopTracking();
+                },
+                
+                // Настройки
+                {
 
-let map = L.map('map').setView([55.75,37.61],13);
-let marker;
+Golante, [01.02.2026 15:09]
+enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+        
+        // Остановить отслеживание
+        function stopTracking() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            isTracking = false;
+            
+            updateStatus('⏹️ Отслеживание остановлено', 'error');
+        }
+        
+        // Обновление карты
+        function updateMap(lat, lng) {
+            if (!marker) {
+                // Создаем новый маркер
+                marker = L.marker([lat, lng]).addTo(map);
+                map.setView([lat, lng], 16);
+                
+                // Добавляем всплывающее окно
+                marker.bindPopup('<b>Ваше местоположение</b><br>Обновляется в реальном времени')
+                       .openPopup();
+            } else {
+                // Обновляем позицию существующего маркера
+                marker.setLatLng([lat, lng]);
+            }
+        }
+        
+        // Сохранение в базу данных
+        async function saveToDatabase(lat, lng, accuracy) {
+            try {
+                const { error } = await supabase
+                    .from('locations')
+                    .upsert({
+                        share_id: myShareId,
+                        latitude: lat,
+                        longitude: lng,
+                        accuracy: accuracy,
+                        updated_at: new Date().toISOString()
+                    });
+                
+                if (error) {
+                    console.error('Ошибка Supabase:', error);
+                    updateStatus('❌ Ошибка сохранения в базу данных', 'error');
+                    return false;
+                }
+                
+                // Обновляем статус
+                const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                updateStatus(`✅ Местоположение обновлено (${time})`, 'success');
+                return true;
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                updateStatus('❌ Непредвиденная ошибка', 'error');
+                return false;
+            }
+        }
+        
+        // Показать секцию分享
+        function showShareSection() {
+            const shareSection = document.getElementById('share-section');
+            shareSection.style.display = 'block';
+            
+            // Создаем ссылку для分享
+            const shareUrl = ${window.location.origin}/?view=${myShareId};
+            document.getElementById('share-link').value = shareUrl;
+            
+            updateStatus('✅ Ссылка для分享 готова! Отправьте её другу.', 'success');
+        }
+        
+        // Копировать ссылку
+        function copyShareLink() {
+            const linkInput = document.getElementById('share-link');
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999); // Для мобильных устройств
+            
+            navigator.clipboard.writeText(linkInput.value)
+                .then(() => {
+                    updateStatus('✅ Ссылка скопирована в буфер обмена!', 'success');
+                })
+                .catch(err => {
+                    updateStatus('❌ Не удалось скопировать ссылку', 'error');
+                });
+        }
+        
+        // Поделиться в WhatsApp
+        function shareWhatsApp() {
+            const link = document.getElementById('share-link').value;
+            const text = 📍 Мое местоположение в реальном времени:\n${link};
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        }
+        
+        // Поделиться в Telegram
+        function shareTelegram() {
+            const link = document.getElementById('share-link').value;
+            const text = 📍 Мое местоположение в реальном времени:\n${link};
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:19
-}).addTo(map);
-
-function start(){
-
-navigator.geolocation.watchPosition(p=>{
-
-let lat=p.coords.latitude;
-let lng=p.coords.longitude;
-
-if(!marker){
-marker=L.marker([lat,lng]).addTo(map);
-map.setView([lat,lng],16);
-}else{
-marker.setLatLng([lat,lng]);
-}
-
-},e=>{
-alert("Разреши геолокацию");
-},{enableHighAccuracy:true});
-
-}
-
-</script>
-
+Golante, [01.02.2026 15:09]
+window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Мое местоположение')}`, '_blank');
+        }
+        
+        // Автозагрузка при открытии分享ссылки
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewId = urlParams.get('view');
+            
+            if (viewId) {
+                // Режим просмотра (для друга)
+                loadSharedLocation(viewId);
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'none';
+                document.title = '📍 Просмотр местоположения';
+                
+                // Обновляем заголовок
+                document.querySelector('.header h1').textContent = '📍 Просмотр местоположения друга';
+                document.querySelector('.header p').textContent = 'Местоположение обновляется в реальном времени';
+            }
+        };
+        
+        // Загрузка分享местоположения
+        async function loadSharedLocation(shareId) {
+            updateStatus('🔄 Загружаем местоположение...', 'info');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('locations')
+                    .select('*')
+                    .eq('share_id', shareId)
+                    .order('updated_at', { ascending: false })
+                    .limit(1)
+                    .single();
+                
+                if (error) throw error;
+                
+                if (data && data.latitude && data.longitude) {
+                    // Добавляем маркер на карту
+                    const marker = L.marker([data.latitude, data.longitude])
+                        .addTo(map)
+                        .bindPopup(`
+                            <b>Местоположение друга</b><br>
+                            📍 Координаты: ${data.latitude.toFixed(6)}, ${data.longitude.toFixed(6)}<br>
+                            ⏰ Обновлено: ${new Date(data.updated_at).toLocaleTimeString()}<br>
+                            📏 Точность: ${data.accuracy ? Math.round(data.accuracy) + ' м' : 'неизвестно'}
+                        `)
+                        .openPopup();
+                    
+                    // Центрируем карту
+                    map.setView([data.latitude, data.longitude], 15);
+                    
+                    updateStatus('✅ Местоположение загружено', 'success');
+                    
+                    // Автообновление каждые 5 секунд
+                    setInterval(() => {
+                        loadSharedLocation(shareId);
+                    }, 5000);
+                    
+                } else {
+                    updateStatus('❌ Местоположение не найдено', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                updateStatus('❌ Ошибка загрузки местоположения', 'error');
+            }
+        }
+        
+        // Обработка закрытия страницы
+        window.addEventListener('beforeunload', function() {
+            if (isTracking) {
+                stopTracking();
+            }
+        });
+    </script>
 </body>
 </html>
