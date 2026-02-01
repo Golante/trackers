@@ -351,32 +351,33 @@ Golante, [01.02.2026 15:16]
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
-        // ============================================
-        // ⚠️ ВАШИ КЛЮЧИ SUPABASE:
-        // ============================================
-        const SUPABASE_URL = 'https://ВАШ-ID.mykbslwnmmdkcsyfconhco';
-        const SUPABASE_KEY = sb_publishable_OJGkhLr8_qmBfn-tqbraQQ_42frnsgH
-        // ============================================
-        
-        // Инициализация
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let map = null;
-        let marker = null;
-        let watchId = null;
-        let myShareId = null;
-        let isTracking = false;
-        
-        // Инициализация карты (после загрузки страницы)
-        function initMap() {
-            // Убедимся, что контейнер существует
-            const mapContainer = document.getElementById('map');
-            if (!mapContainer) {
-                console.error('Контейнер карты не найден!');
-                return;
-            }
-            
+   Golante, [01.02.2026 19:45]
+// ============================================
+// ⚠️ ВАШИ КЛЮЧИ SUPABASE:
+// ============================================
+const SUPABASE_URL = 'https://mykbslwnmmdkcsyfconh.co';
+const SUPABASE_KEY = sb_publishable_OJGkhLr8_qmBfn-tqbraQQ_42frnsgH
+// ============================================
+
+// Инициализация Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Переменные
+let map = null;
+let marker = null;
+let watchId = null;
+let myShareId = null;
+
+// 1. СОЗДАЕМ КАРТУ СРАЗУ ПРИ ЗАГРУЗКЕ
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Начинаем загрузку карты...');
+    
+    // Ждем 1 секунду чтобы все точно загрузилось
+    setTimeout(function() {
+        try {
             // Создаем карту
             map = L.map('map').setView([55.75, 37.61], 13);
+            console.log('✅ Карта создана');
             
             // Добавляем слой карты
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -384,107 +385,93 @@ Golante, [01.02.2026 15:16]
                 maxZoom: 19
             }).addTo(map);
             
-            console.log('Карта инициализирована');
+            console.log('✅ Слой карты добавлен');
+            
+            // Добавляем тестовый маркер чтобы видеть что карта работает
+            L.marker([55.75, 37.61])
+                .addTo(map)
+                .bindPopup('Карта готова к работе!')
+                .openPopup();
+            
+            // Меняем фон контейнера чтобы было видно
+            document.getElementById('map').style.border = '3px solid green';
+            
+            // Обновляем статус
+            updateStatus('✅ Карта загружена. Нажмите "Начать отслеживание"', 'success');
+            
+        } catch (error) {
+            console.error('❌ Ошибка создания карты:', error);
+            updateStatus('❌ Ошибка загрузки карты: ' + error.message, 'error');
         }
-        
-        // Запускаем инициализацию после загрузки страницы
-        window.addEventListener('load', initMap);
-        
-        // Обновление статуса
-        function updateStatus(message, type = 'info') {
-            const statusEl = document.getElementById('status');
-            if (!statusEl) return;
-            
-            statusEl.textContent = message;
-            statusEl.className = '';
-            
-            if (type === 'success') {
-                statusEl.classList.add('status-success');
-            } else if (type === 'error') {
-                statusEl.classList.add('status-error');
-            } else {
-                statusEl.classList.add('status-info');
-            }
-        }
-        
-        // Начать отслеживание
-        async function startTracking() {
-            if (isTracking) return;
-            
-            // Проверка геолокации
-            if (!navigator.geolocation) {
-                updateStatus('❌ Браузер не поддерживает геолокацию', 'error');
-                return;
-            }
-            
-            // Обновляем кнопки
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('stopBtn').disabled = false;
-            isTracking = true;
+    }, 1000);
+});
 
-Golante, [01.02.2026 15:16]
-// Генерируем ID
-            myShareId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+// 2. ОБНОВЛЕНИЕ СТАТУСА
+function updateStatus(message, type = 'info') {
+    const statusEl = document.getElementById('status');
+    if (!statusEl) {
+        console.log('Статус:', message);
+        return;
+    }
+    
+    statusEl.textContent = message;
+    statusEl.className = 'status';
+    
+    if (type === 'success') {
+        statusEl.classList.add('status-success');
+    } else if (type === 'error') {
+        statusEl.classList.add('status-error');
+    } else {
+        statusEl.classList.add('status-info');
+    }
+    
+    statusEl.style.display = 'block';
+}
+
+// 3. НАЧАТЬ ОТСЛЕЖИВАНИЕ
+async function startTracking() {
+    if (watchId) return;
+    
+    // Проверяем карту
+    if (!map) {
+        updateStatus('❌ Карта не загрузилась. Обновите страницу.', 'error');
+        return;
+    }
+    
+    // Проверяем геолокацию
+    if (!navigator.geolocation) {
+        updateStatus('❌ Браузер не поддерживает геолокацию', 'error');
+        return;
+    }
+    
+    // Меняем кнопки
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+    
+    // Создаем ID
+    myShareId = 'user_' + Date.now();
+    
+    updateStatus('📍 Определяем ваше местоположение...', 'info');
+    
+    // Запускаем геолокацию
+    watchId = navigator.geolocation.watchPosition(
+        // Успех
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
             
-            updateStatus('📍 Определяем ваше местоположение...', 'info');
+            console.log('Координаты:', lat, lng);
             
-            // Запускаем геолокацию
-            watchId = navigator.geolocation.watchPosition(
-                // Успех
-                async (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    
-                    // Обновляем карту
-                    updateMapPosition(lat, lng);
-                    
-                    // Сохраняем в базу
-                    await saveLocation(lat, lng);
-                    
-                    // Показываем ссылку
-                    showShareLink();
-                },
-                
-                // Ошибка
-                (error) => {
-                    let msg = 'Ошибка геолокации';
-                    if (error.code === 1) msg = 'Разрешите доступ к геолокации';
-                    if (error.code === 2) msg = 'Не удалось определить местоположение';
-                    if (error.code === 3) msg = 'Таймаут';
-                    
-                    updateStatus('❌ ' + msg, 'error');
-                    stopTracking();
-                },
-                
-                // Настройки
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-        }
-        
-        // Обновить позицию на карте
-        function updateMapPosition(lat, lng) {
-            if (!map) {
-                console.error('Карта не инициализирована');
-                return;
-            }
-            
+            // Показываем на карте
             if (!marker) {
-                // Создаем маркер
                 marker = L.marker([lat, lng]).addTo(map);
                 map.setView([lat, lng], 16);
                 marker.bindPopup('Вы здесь').openPopup();
             } else {
-                // Обновляем маркер
                 marker.setLatLng([lat, lng]);
             }
-        }
-        
-        // Сохранить местоположение
-        async function saveLocation(lat, lng) {
+            
+            // Сохраняем в базу
             try {
                 const { error } = await supabase
                     .from('locations')
@@ -493,129 +480,101 @@ Golante, [01.02.2026 15:16]
                         latitude: lat,
                         longitude: lng,
                         updated_at: new Date().toISOString()
-                    });
+
+Golante, [01.02.2026 19:45]
+});
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Ошибка Supabase:', error);
+                    updateStatus('❌ Ошибка сохранения', 'error');
+                    return;
+                }
                 
                 const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                updateStatus(`✅ Обновлено в ${time}`, 'success');
+                updateStatus(`✅ Местоположение сохранено (${time})`, 'success');
+                
+                // Показываем ссылку
+                showShareLink();
                 
             } catch (error) {
-                console.error('Ошибка сохранения:', error);
+                console.error('Ошибка:', error);
                 updateStatus('❌ Ошибка соединения', 'error');
             }
-        }
+        },
         
-        // Показать ссылку
-        function showShareLink() {
-            const shareSection = document.getElementById('shareSection');
-            if (shareSection.style.display !== 'block') {
-                shareSection.style.display = 'block';
-                
-                // Генерируем ссылку
-                const baseUrl = window.location.origin + window.location.pathname;
-                const shareUrl = baseUrl + '?view=' + myShareId;
-                document.getElementById('share-link').value = shareUrl;
-                
-                updateStatus('✅ Ссылка готова! Отправьте другу.', 'success');
-            }
-        }
-        
-        // Остановить отслеживание
-        function stopTracking() {
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
+        // Ошибка
+        (error) => {
+            let msg = 'Ошибка геолокации';
+            if (error.code === 1) msg = 'Разрешите доступ к геолокации';
+            if (error.code === 2) msg = 'Не удалось определить местоположение';
+            if (error.code === 3) msg = 'Таймаут';
             
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            isTracking = false;
+            updateStatus('❌ ' + msg, 'error');
+            stopTracking();
+        },
+        
+        // Настройки
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
 
-Golante, [01.02.2026 15:16]
-updateStatus('⏹️ Отслеживание остановлено', 'error');
-        }
+// 4. ПОКАЗАТЬ ССЫЛКУ
+function showShareLink() {
+    const shareSection = document.getElementById('shareSection');
+    if (!shareSection) return;
+    
+    if (shareSection.style.display !== 'block') {
+        shareSection.style.display = 'block';
         
-        // Копировать ссылку
-        function copyShareLink() {
-            const linkInput = document.getElementById('share-link');
-            if (!linkInput.value) return;
-            
-            linkInput.select();
-            navigator.clipboard.writeText(linkInput.value)
-                .then(() => updateStatus('✅ Ссылка скопирована!', 'success'))
-                .catch(() => updateStatus('❌ Не удалось скопировать', 'error'));
-        }
+        // Создаем ссылку
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareUrl = baseUrl + '?view=' + myShareId;
         
-        // Поделиться в WhatsApp
-        function shareWhatsApp() {
-            const link = document.getElementById('share-link').value;
-            const text = 📍 Мое местоположение:\n${link};
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-        }
-        
-        // Поделиться в Telegram
-        function shareTelegram() {
-            const link = document.getElementById('share-link').value;
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=📍 Мое местоположение`, '_blank');
-        }
-        
-        // Автозагрузка для друга
-        window.addEventListener('load', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const viewId = urlParams.get('view');
-            
-            if (viewId) {
-                // Режим просмотра
-                loadFriendLocation(viewId);
-                document.getElementById('startBtn').style.display = 'none';
-                document.getElementById('stopBtn').style.display = 'none';
-                document.querySelector('.header h1').textContent = '📍 Просмотр местоположения';
-            }
-        });
-        
-        // Загрузить местоположение друга
-        async function loadFriendLocation(shareId) {
-            updateStatus('🔄 Загружаем местоположение...', 'info');
-            
-            try {
-                const { data } = await supabase
-                    .from('locations')
-                    .select('*')
-                    .eq('share_id', shareId)
-                    .order('updated_at', { ascending: false })
-                    .limit(1);
-                
-                if (data && data[0]) {
-                    const loc = data[0];
-                    
-                    // Показываем на карте
-                    if (map) {
-                        L.marker([loc.latitude, loc.longitude])
-                            .addTo(map)
-                            .bindPopup(`Друг<br>Обновлено: ${new Date(loc.updated_at).toLocaleTimeString()}`)
-                            .openPopup();
-                        
-                        map.setView([loc.latitude, loc.longitude], 15);
-                    }
-                    
-                    updateStatus(`✅ Активно • ${new Date(loc.updated_at).toLocaleTimeString()}`, 'success');
-                    
-                    // Автообновление
-                    setInterval(() => loadFriendLocation(shareId), 5000);
-                }
-            } catch (error) {
-                updateStatus('❌ Ошибка загрузки', 'error');
-            }
-
-        / Принудительная инициализация через 3 секунды
-setTimeout(function() {
-    if (!window.mapInitialized && document.getElementById('map')) {
-        console.log('Принудительно инициализируем карту...');
-        initMap();
+        document.getElementById('share-link').value = shareUrl;
+        updateStatus('✅ Ссылка готова! Отправьте другу.', 'success');
     }
-}, 3000);
-        }
+}
+
+// 5. ОСТАНОВИТЬ ОТСЛЕЖИВАНИЕ
+function stopTracking() {
+    if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+    
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    
+    updateStatus('⏹️ Отслеживание остановлено', 'error');
+}
+
+// 6. КОПИРОВАТЬ ССЫЛКУ
+function copyShareLink() {
+    const linkInput = document.getElementById('share-link');
+    if (!linkInput || !linkInput.value) return;
+    
+    linkInput.select();
+    navigator.clipboard.writeText(linkInput.value)
+        .then(() => updateStatus('✅ Ссылка скопирована!', 'success'))
+        .catch(() => updateStatus('❌ Не удалось скопировать', 'error'));
+}
+
+// 7. ПОДЕЛИТЬСЯ В WHATSAPP
+function shareWhatsApp() {
+    const link = document.getElementById('share-link').value;
+    const text = 📍 Мое местоположение:\n${link};
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// 8. ПОДЕЛИТЬСЯ В TELEGRAM
+function shareTelegram() {
+    const link = document.getElementById('share-link').value;
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=📍 Мое местоположение`, '_blank');
+}
     </script>
 </body>
 </html>
